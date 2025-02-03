@@ -1,11 +1,8 @@
-// lib/widgets/notebook_view.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/cell.dart';
-import '../providers/notebook_provider.dart';
-import '../providers/notebook_state.dart';
+import '../providers/notebook_state.dart'; // Use the NotebookStateNotifier provider only
 import '../services/math_engine.dart';
-
 
 class NotebookView extends ConsumerWidget {
   const NotebookView({Key? key}) : super(key: key);
@@ -41,15 +38,11 @@ class NotebookView extends ConsumerWidget {
             itemCount: notebook.cells.length,
             itemBuilder: (context, index) {
               final cell = notebook.cells[index];
-              return CellWidget(
-                cell: cell,
-              );
+              return CellWidget(cell: cell);
             },
           ),
           if (notebookState.isExecuting)
-            const Center(
-              child: CircularProgressIndicator(),
-            ),
+            const Center(child: CircularProgressIndicator()),
           if (notebookState.error != null)
             Container(
               padding: const EdgeInsets.all(8.0),
@@ -108,13 +101,15 @@ class CellToolbar extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.play_arrow),
             onPressed: () {
-              // Execute cell
+              // Execute a single cell using the NotebookStateNotifier
+              ref.read(notebookStateProvider.notifier).executeCell(cell.id);
             },
           ),
           IconButton(
             icon: const Icon(Icons.delete),
             onPressed: () {
-              ref.read(notebookProvider.notifier).removeCell(cell.id);
+              // Remove the cell via NotebookStateNotifier
+              ref.read(notebookStateProvider.notifier).removeCell(cell.id);
             },
           ),
         ],
@@ -143,7 +138,8 @@ class CellContent extends ConsumerWidget {
           hintText: 'Enter ${cell.type} content...',
         ),
         onChanged: (value) {
-          ref.read(notebookProvider.notifier).updateCell(
+          // Update the cell content via NotebookStateNotifier
+          ref.read(notebookStateProvider.notifier).updateCell(
                 cell.id,
                 cell.copyWith(content: value),
               );
