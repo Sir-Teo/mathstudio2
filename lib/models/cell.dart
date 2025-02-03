@@ -69,3 +69,42 @@ class Cell {
       ..updatedAt = DateTime.parse(json['updatedAt']);
   }
 }
+
+
+// lib/models/cell.dart (Add MathCell implementation)
+class MathCell extends Cell {
+  Map<String, dynamic>? scope;
+
+  MathCell({
+    required String content,
+    this.scope,
+    dynamic output,
+  }) : super(
+          content: content,
+          type: CellType.math,
+          output: output,
+        );
+
+  @override
+  MathCell copyWith({
+    String? content,
+    CellType? type, // Must be included to match the base class
+    Map<String, dynamic>? scope,
+    dynamic output,
+    bool? isExecuting,
+  }) {
+    // Optionally, you could enforce that `type` must be CellType.math if provided:
+    if (type != null && type != CellType.math) {
+      throw ArgumentError('MathCell type must be CellType.math');
+    }
+
+    // Create a new MathCell using the provided values or falling back to existing ones.
+    // Note: We set the type to CellType.math regardless.
+    return MathCell(
+      content: content ?? this.content,
+      scope: scope ?? this.scope,
+      output: output ?? this.output,
+    )
+      ..isExecuting = isExecuting ?? this.isExecuting;
+  }
+}
