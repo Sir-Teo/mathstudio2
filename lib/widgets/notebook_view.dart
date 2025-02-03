@@ -3,38 +3,65 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/cell.dart';
 import '../providers/notebook_provider.dart';
+import '../providers/notebook_state.dart';
 
+
+
+// Update NotebookView widget to use EvaluationResult
 class NotebookView extends ConsumerWidget {
   const NotebookView({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final notebook = ref.watch(notebookProvider);
+    final notebookState = ref.watch(notebookStateProvider);
+    final notebook = notebookState.notebook;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(notebook.title),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add),
+            icon: const Icon(Icons.play_arrow),
+            onPressed: notebookState.isExecuting
+                ? null
+                : () {
+                    ref.read(notebookStateProvider.notifier).executeAllCells();
+                  },
+          ),
+          IconButton(
+            icon: const Icon(Icons.clear_all),
             onPressed: () {
-              ref.read(notebookProvider.notifier).addCell(
-                Cell(
-                  content: '',
-                  type: CellType.text,
-                ),
+              ref.read(notebookStateProvider.notifier).clearExecutionState();
+            },
+          ),
+        ],
+      ),
+      body: Stack(
+        children: [
+          ListView.builder(
+            itemCount: notebook.cells.length,
+            itemBuilder: (context, index) {
+              final cell = notebook.cells[index];
+              return CellWidget(
+                cell: cell,
+                globalScope: notebookState.globalScope,
               );
             },
           ),
-          // Add more toolbar actions here
+          if (notebookState.isExecuting)
+            const Center(
+              child: CircularProgressIndicator(),
+            ),
+          if (notebookState.lastResult?.success == false)
+            Container(
+              padding: const EdgeInsets.all(8.0),
+              color: Colors.red.withOpacity(0.1),
+              child: Text(
+                notebookState.lastResult!.error!,
+                style: const TextStyle(color: Colors.red),
+              ),
+            ),
         ],
-      ),
-      body: ListView.builder(
-        itemCount: notebook.cells.length,
-        itemBuilder: (context, index) {
-          final cell = notebook.cells[index];
-          return CellWidget(cell: cell);
-        },
       ),
     );
   }
