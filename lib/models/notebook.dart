@@ -15,12 +15,11 @@ class Notebook {
     required this.title,
     List<Cell>? cells,
     Map<String, dynamic>? metadata,
-  }) :
-    id = id ?? const Uuid().v4(),
-    cells = cells ?? [],
-    metadata = metadata ?? {},
-    createdAt = DateTime.now(),
-    updatedAt = DateTime.now();
+  })  : id = id ?? const Uuid().v4(),
+        cells = cells ?? [],
+        metadata = metadata ?? {},
+        createdAt = DateTime.now(),
+        updatedAt = DateTime.now();
 
   void addCell(Cell cell, [int? index]) {
     if (index != null) {
@@ -66,5 +65,25 @@ class Notebook {
     )
       ..createdAt = DateTime.parse(json['createdAt'])
       ..updatedAt = DateTime.parse(json['updatedAt']);
+  }
+
+  /// The copyWith method returns a new Notebook instance with updated fields.
+  Notebook copyWith({
+    String? title,
+    List<Cell>? cells,
+    Map<String, dynamic>? metadata,
+    DateTime? updatedAt,
+  }) {
+    // Create a new Notebook instance using the same id and createdAt
+    final newNotebook = Notebook(
+      id: id,
+      title: title ?? this.title,
+      cells: cells ?? List<Cell>.from(this.cells),
+      metadata: metadata ?? Map<String, dynamic>.from(this.metadata),
+    );
+    newNotebook.createdAt = createdAt;
+    // If updatedAt is provided, use it; otherwise, update to current time.
+    newNotebook.updatedAt = updatedAt ?? DateTime.now();
+    return newNotebook;
   }
 }

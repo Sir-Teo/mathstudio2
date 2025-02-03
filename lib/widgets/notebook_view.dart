@@ -4,10 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/cell.dart';
 import '../providers/notebook_provider.dart';
 import '../providers/notebook_state.dart';
+import '../services/math_engine.dart';
 
 
-
-// Update NotebookView widget to use EvaluationResult
 class NotebookView extends ConsumerWidget {
   const NotebookView({Key? key}) : super(key: key);
 
@@ -44,7 +43,6 @@ class NotebookView extends ConsumerWidget {
               final cell = notebook.cells[index];
               return CellWidget(
                 cell: cell,
-                globalScope: notebookState.globalScope,
               );
             },
           ),
@@ -52,12 +50,12 @@ class NotebookView extends ConsumerWidget {
             const Center(
               child: CircularProgressIndicator(),
             ),
-          if (notebookState.lastResult?.success == false)
+          if (notebookState.error != null)
             Container(
               padding: const EdgeInsets.all(8.0),
               color: Colors.red.withOpacity(0.1),
               child: Text(
-                notebookState.lastResult!.error!,
+                notebookState.error!,
                 style: const TextStyle(color: Colors.red),
               ),
             ),

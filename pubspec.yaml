@@ -24,6 +24,7 @@ dependencies:
   markdown: ^7.3.0
   google_fonts: ^6.2.1
   highlight: ^0.7.0
+  math_expressions: ^2.6.0
 
 dev_dependencies:
   flutter_test:

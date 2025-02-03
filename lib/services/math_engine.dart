@@ -1,11 +1,6 @@
 // lib/services/math_engine.dart
-import 'package:js/js.dart';
-import 'dart:js_util';
+import 'package:math_expressions/math_expressions.dart';
 import 'dart:async';
-
-@JS('math')
-external dynamic get mathJS;
-external dynamic get windowJS;
 
 class MathEngine {
   // Singleton instance
@@ -13,51 +8,53 @@ class MathEngine {
   factory MathEngine() => _instance;
   MathEngine._internal();
 
-  // Store variables and their values
-  final Map<String, dynamic> _variables = {};
-  
-  // Store user-defined functions
+  // Parser for expressions
+  final Parser _parser = Parser();
+
+  // Store variables and their numeric values
+  final Map<String, double> _variables = {};
+
+  // Store user-defined functions (simple single-parameter functions)
   final Map<String, String> _functions = {};
 
-  // Initialize MathJS
+  /// Initialize the math engine.
+  /// For math_expressions, no async initialization is needed.
   Future<void> initialize() async {
-    // Load MathJS from CDN if needed
-    await _loadMathJS();
+    // No initialization required for math_expressions.
   }
 
-  Future<void> _loadMathJS() async {
-    final script = '''
-      if (typeof math === 'undefined') {
-        const script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjs/9.4.4/math.js';
-        document.head.appendChild(script);
-        await new Promise(resolve => script.onload = resolve);
-      }
-    ''';
-    await promiseToFuture(callMethod(windowJS, 'eval', [script]));
-  }
-
-  // Evaluate mathematical expression
-  Future<EvaluationResult> evaluate(String expression, {Map<String, dynamic>? scope}) async {
+  /// Evaluate a mathematical [expression] with an optional [scope] of variables.
+  Future<EvaluationResult> evaluate(String expression,
+      {Map<String, double>? scope}) async {
     try {
-      final evaluationScope = {..._variables};
+      // Create a context model and bind variables from the engine.
+      final contextModel = ContextModel();
+
+      // Bind engine-wide variables.
+      _variables.forEach((key, value) {
+        contextModel.bindVariable(Variable(key), Number(value));
+      });
+
+      // Bind any additional variables provided in the scope.
       if (scope != null) {
-        evaluationScope.addAll(scope);
+        scope.forEach((key, value) {
+          contextModel.bindVariable(Variable(key), Number(value));
+        });
       }
 
-      // Replace any user-defined functions in the expression
+      // Replace any user-defined functions in the expression.
       String processedExpression = _replaceFunctions(expression);
 
-      // Evaluate using MathJS
-      final result = await promiseToFuture(callMethod(mathJS, 'evaluate', [
-        processedExpression,
-        jsify(evaluationScope),
-      ]));
+      // Parse the processed expression.
+      Expression exp = _parser.parse(processedExpression);
+
+      // Evaluate the expression.
+      double evalResult = exp.evaluate(EvaluationType.REAL, contextModel);
 
       return EvaluationResult(
         success: true,
-        result: _convertJSResult(result),
-        type: _getResultType(result),
+        result: evalResult,
+        type: ResultType.number,
       );
     } catch (e) {
       return EvaluationResult(
@@ -68,73 +65,51 @@ class MathEngine {
     }
   }
 
-  // Define a variable
-  void setVariable(String name, dynamic value) {
+  /// Define or update a variable with a given [name] and numeric [value].
+  void setVariable(String name, double value) {
     _variables[name] = value;
   }
 
-  // Get a variable value
-  dynamic getVariable(String name) {
+  /// Retrieve the value of a variable by its [name].
+  double? getVariable(String name) {
     return _variables[name];
   }
 
-  // Define a function
+  /// Define a simple function by [name] with an [expression].
+  /// The expression should be written in terms of a single parameter "x".
+  /// For example: defineFunction('f', 'x^2 + 2*x + 1');
   void defineFunction(String name, String expression) {
     _functions[name] = expression;
   }
 
-  // Replace function calls with their definitions
+  /// Replace user-defined function calls in [expression] with their definitions.
+  ///
+  /// For example, if you have defined:
+  /// ```dart
+  /// defineFunction('f', 'x^2 + 2*x + 1');
+  /// ```
+  /// then a call like `f(3)` will be replaced by `(3^2 + 2*3 + 1)`.
   String _replaceFunctions(String expression) {
     String result = expression;
     _functions.forEach((name, def) {
       final regex = RegExp(r'\b' + name + r'\((.*?)\)');
       result = result.replaceAllMapped(regex, (match) {
         String args = match.group(1) ?? '';
-        return '(' + def.replaceAll(RegExp(r'x'), args) + ')';
+        // Replace the parameter "x" in the function definition with the argument.
+        return '(' + def.replaceAll(RegExp(r'\bx\b'), args) + ')';
       });
     });
     return result;
   }
 
-  // Convert JS result to Dart
-  dynamic _convertJSResult(dynamic jsResult) {
-    if (jsResult == null) return null;
-    
-    // Handle arrays
-    if (jsResult is List) {
-      return jsResult.map(_convertJSResult).toList();
-    }
-    
-    // Handle objects
-    if (jsResult is Map) {
-      return jsResult.map((k, v) => MapEntry(k, _convertJSResult(v)));
-    }
-    
-    // Handle numbers
-    if (jsResult is num) {
-      return jsResult;
-    }
-    
-    // Handle strings
-    return jsResult.toString();
-  }
-
-  ResultType _getResultType(dynamic result) {
-    if (result == null) return ResultType.null_;
-    if (result is num) return ResultType.number;
-    if (result is bool) return ResultType.boolean;
-    if (result is List) return ResultType.array;
-    if (result is Map) return ResultType.object;
-    return ResultType.string;
-  }
-
-  // Clear all variables and functions
+  /// Clear all stored variables and user-defined functions.
   void clear() {
     _variables.clear();
     _functions.clear();
   }
 }
 
+/// Represents the type of evaluation result.
 enum ResultType {
   number,
   string,
@@ -145,6 +120,7 @@ enum ResultType {
   error,
 }
 
+/// Encapsulates the result of an evaluation.
 class EvaluationResult {
   final bool success;
   final dynamic result;

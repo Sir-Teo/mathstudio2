@@ -1,13 +1,11 @@
-// lib/models/cell.dart
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
-
 
 enum CellType {
   text,
   code,
   math,
-  output
+  output,
 }
 
 class Cell {
@@ -23,12 +21,11 @@ class Cell {
     String? id,
     required this.content,
     required this.type,
-    dynamic this.output,
-  }) : 
-    id = id ?? const Uuid().v4(),
-    createdAt = DateTime.now(),
-    updatedAt = DateTime.now(),
-    isExecuting = false;
+    this.output,
+  })  : id = id ?? const Uuid().v4(),
+        createdAt = DateTime.now(),
+        updatedAt = DateTime.now(),
+        isExecuting = false;
 
   Cell copyWith({
     String? content,
@@ -41,7 +38,8 @@ class Cell {
       content: content ?? this.content,
       type: type ?? this.type,
       output: output ?? this.output,
-    )..updatedAt = DateTime.now()
+    )
+      ..updatedAt = DateTime.now()
       ..isExecuting = isExecuting ?? this.isExecuting;
   }
 
@@ -70,10 +68,10 @@ class Cell {
   }
 }
 
-
-// lib/models/cell.dart (Add MathCell implementation)
+// Updated MathCell implementation with a typed scope
 class MathCell extends Cell {
-  Map<String, dynamic>? scope;
+  /// Changed [scope] from Map<String, dynamic>? to Map<String, double>?
+  Map<String, double>? scope;
 
   MathCell({
     required String content,
@@ -89,17 +87,14 @@ class MathCell extends Cell {
   MathCell copyWith({
     String? content,
     CellType? type, // Must be included to match the base class
-    Map<String, dynamic>? scope,
+    Map<String, double>? scope, // Updated type here
     dynamic output,
     bool? isExecuting,
   }) {
-    // Optionally, you could enforce that `type` must be CellType.math if provided:
     if (type != null && type != CellType.math) {
       throw ArgumentError('MathCell type must be CellType.math');
     }
 
-    // Create a new MathCell using the provided values or falling back to existing ones.
-    // Note: We set the type to CellType.math regardless.
     return MathCell(
       content: content ?? this.content,
       scope: scope ?? this.scope,

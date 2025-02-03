@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/notebook.dart';
 import '../models/cell.dart';
 import '../services/execution_engine.dart';
+import '../services/math_engine.dart';
 
 // lib/providers/notebook_state.dart
 class NotebookState {

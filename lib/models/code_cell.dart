@@ -19,15 +19,15 @@ class CodeCell extends Cell {
   @override
   CodeCell copyWith({
     String? content,
-    Map<String, dynamic>? scope,
-    String? language,
-    dynamic output,
     bool? isExecuting,
+    dynamic output,
+    CellType? type,
   }) {
     return CodeCell(
       content: content ?? this.content,
-      scope: scope ?? this.scope,
-      language: language ?? this.language,
+      scope:
+          this.scope, // No way to change scope here unless the parent passes it
+      language: this.language, // Same with language
       output: output ?? this.output,
     );
   }
@@ -44,7 +44,7 @@ class CodeCell extends Cell {
     return CodeCell(
       content: json['content'],
       language: json['language'],
-      scope: json['scope'] != null 
+      scope: json['scope'] != null
           ? Map<String, dynamic>.from(json['scope'])
           : null,
       output: json['output'],
