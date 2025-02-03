@@ -59,7 +59,7 @@ class Cell {
       id: json['id'],
       content: json['content'],
       type: CellType.values.firstWhere(
-        (e) => e.toString() == json['type'],
+        (e) => e.name == json['type'],
       ),
       output: json['output'],
     )
@@ -99,7 +99,6 @@ class MathCell extends Cell {
       content: content ?? this.content,
       scope: scope ?? this.scope,
       output: output ?? this.output,
-    )
-      ..isExecuting = isExecuting ?? this.isExecuting;
+    )..isExecuting = isExecuting ?? this.isExecuting;
   }
 }

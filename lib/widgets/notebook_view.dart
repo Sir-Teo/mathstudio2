@@ -54,6 +54,21 @@ class NotebookView extends ConsumerWidget {
             ),
         ],
       ),
+      // Floating Action Button to add a new cell
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          // Create a new cell. You can choose the type and initial content as needed.
+          // Here, we create a math cell with empty content.
+          final newCell = Cell(
+            content: '',
+            type: CellType.math,
+          );
+
+          // Add the new cell to the notebook.
+          ref.read(notebookStateProvider.notifier).addCell(newCell);
+        },
+        child: const Icon(Icons.add),
+      ),
     );
   }
 }
