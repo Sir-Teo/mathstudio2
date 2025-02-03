@@ -37,7 +37,7 @@ class NotebookStateNotifier extends StateNotifier<NotebookState> {
   final ExecutionEngine executionEngine;
 
   NotebookStateNotifier(this.executionEngine)
-      : super(NotebookState(notebook: Notebook(title: 'Untitled Notebook')));
+      : super(NotebookState(notebook: Notebook(title: 'Math Notebook')));
 
   Future<void> executeCell(String cellId) async {
     final cellIndex = state.notebook.cells.indexWhere((c) => c.id == cellId);
