@@ -13,7 +13,7 @@ MathStudio2 is a web-based mathematical notebook application built with Flutter.
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/mathstudio2.git
+git clone https://github.com/Sir-Teo/mathstudio2.git
 cd mathstudio2
 ```
 
