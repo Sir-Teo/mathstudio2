@@ -39,22 +39,25 @@ class MathCellWidgetState extends ConsumerState<MathCellWidget> {
   }
 
   void _debouncedEvaluate(String value) {
-    _debounceTimer?.cancel();
-    _debounceTimer = Timer(const Duration(milliseconds: 500), () async {
-      final mathEngine = ref.read(mathEngineProvider);
-      final result = await mathEngine.evaluate(value, scope: widget.cell.scope);
+  _debounceTimer?.cancel();
+  _debounceTimer = Timer(const Duration(milliseconds: 500), () async {
+    final mathEngine = ref.read(mathEngineProvider);
+    final result = value.contains('=') 
+        ? await mathEngine.processInput(value, scope: widget.cell.scope)
+        : await mathEngine.evaluate(value, scope: widget.cell.scope);
       
-      if (mounted) {
-        ref.read(notebookProvider.notifier).updateCell(
-          widget.cell.id,
-          widget.cell.copyWith(
-            content: value,
-            output: result,
-          ),
-        );
-      }
-    });
-  }
+    if (mounted) {
+      ref.read(notebookProvider.notifier).updateCell(
+        widget.cell.id,
+        widget.cell.copyWith(
+          content: value,
+          output: result,
+        ),
+      );
+    }
+  });
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -101,7 +104,11 @@ class MathCellWidgetState extends ConsumerState<MathCellWidget> {
               ),
             ),
           if (widget.cell.output != null)
-            MathCellOutput(output: widget.cell.output),
+            MathCellOutput(
+              output: widget.cell.output!,
+              expression: widget.cell.content,
+              mathEngine: ref.read(mathEngineProvider),
+            ),
         ],
       ),
     );
@@ -136,16 +143,17 @@ class MathCellToolbar extends ConsumerWidget {
             icon: const Icon(Icons.play_arrow),
             onPressed: () async {
               final mathEngine = ref.read(mathEngineProvider);
-              final result = await mathEngine.evaluate(
-                cell.content,
-                scope: cell.scope,
-              );
+              final result = widget.cell.content.contains('=') 
+                  ? await mathEngine.processInput(widget.cell.content, scope: widget.cell.scope)
+                  : await mathEngine.evaluate(widget.cell.content, scope: widget.cell.scope);
+                  
               ref.read(notebookProvider.notifier).updateCell(
-                cell.id,
-                cell.copyWith(output: result),
+                widget.cell.id,
+                widget.cell.copyWith(output: result),
               );
             },
           ),
+
           IconButton(
             icon: const Icon(Icons.delete),
             onPressed: () {
@@ -160,39 +168,52 @@ class MathCellToolbar extends ConsumerWidget {
 
 class MathCellOutput extends StatelessWidget {
   final EvaluationResult output;
+  final String expression;
+  final MathEngine mathEngine;
 
   const MathCellOutput({
     Key? key,
     required this.output,
+    required this.expression,
+    required this.mathEngine,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    if (!output.success) {
+      return Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Text(
+          output.error ?? 'Unknown error',
+          style: const TextStyle(color: Colors.red),
+        ),
+      );
+    }
+
+    // Check if this is a plot command
+    if (expression.trim().startsWith('plot(')) {
+      // Extract the function to plot from between the parentheses
+      final match = RegExp(r'plot\((.*)\)').firstMatch(expression);
+      if (match != null) {
+        String functionToPlot = match.group(1)?.trim() ?? '';
+        
+        // Replace ^ with pow() for proper parsing
+        functionToPlot = functionToPlot.replaceAll('^', '**');
+        
+        // Add multiplication operator where implied
+        functionToPlot = functionToPlot.replaceAll(RegExp(r'(\d)x'), r'$1*x');
+        functionToPlot = functionToPlot.replaceAll(RegExp(r'x(\d)'), r'x*$1');
+        
+        return Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: mathEngine.plot(functionToPlot),
+        );
+      }
+    }
+
+    return Padding(
       padding: const EdgeInsets.all(8.0),
-      color: Colors.grey[100],
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (!output.success)
-            Text(
-              output.error!,
-              style: const TextStyle(color: Colors.red),
-            )
-          else if (output.type == ResultType.number ||
-                   output.type == ResultType.string ||
-                   output.type == ResultType.boolean)
-            SelectableText(
-              output.result.toString(),
-              style: const TextStyle(fontFamily: 'monospace'),
-            )
-          else
-            SelectableText(
-              _formatComplexOutput(output.result),
-              style: const TextStyle(fontFamily: 'monospace'),
-            ),
-        ],
-      ),
+      child: Text(_formatComplexOutput(output.result)),
     );
   }
 

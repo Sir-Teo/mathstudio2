@@ -11,38 +11,45 @@ class ExecutionEngine {
   ExecutionEngine(this.mathEngine);
 
   Future<EvaluationResult> executeCell(Cell cell) async {
-    if (cell.type != CellType.math) {
-      return EvaluationResult(
-        success: false,
-        error: 'Not a math cell',
-        type: ResultType.error,
-      );
-    }
+  if (cell.type != CellType.math) {
+    return EvaluationResult(
+      success: false,
+      error: 'Not a math cell',
+      type: ResultType.error,
+    );
+  }
 
-    cell.isExecuting = true;
+  cell.isExecuting = true;
 
-    try {
-      final result = await mathEngine.evaluate(
+  try {
+    final EvaluationResult result;
+    if (cell.content.contains('=')) {
+      result = await mathEngine.processInput(
         cell.content,
         scope: {...globalScope},
       );
-
-      // Update global scope with any new variables
-      if (result.success && result.type == ResultType.object) {
-        globalScope.addAll(result.result as Map<String, dynamic>);
-      }
-
-      return result;
-    } catch (e) {
-      return EvaluationResult(
-        success: false,
-        error: e.toString(),
-        type: ResultType.error,
+    } else {
+      result = await mathEngine.evaluate(
+        cell.content,
+        scope: {...globalScope},
       );
-    } finally {
-      cell.isExecuting = false;
     }
+    // Update global scope if needed, e.g.:
+    if (result.success && result.type == ResultType.object && result.result is Map<String, dynamic>) {
+      globalScope.addAll(result.result as Map<String, dynamic>);
+    }
+    return result;
+  } catch (e) {
+    return EvaluationResult(
+      success: false,
+      error: e.toString(),
+      type: ResultType.error,
+    );
+  } finally {
+    cell.isExecuting = false;
   }
+}
+
 
   Future<List<EvaluationResult>> executeAllCells(List<Cell> cells) async {
     final results = <EvaluationResult>[];

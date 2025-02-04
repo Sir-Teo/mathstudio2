@@ -25,6 +25,8 @@ dependencies:
   google_fonts: ^6.2.1
   highlight: ^0.7.0
   math_expressions: ^2.6.0
+  fl_chart: ^0.70.2
+  expressions: ^0.2.5+2
 
 dev_dependencies:
   flutter_test:
